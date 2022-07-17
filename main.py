@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from config import URL
+from config import URL, URL2
 import requests
 from bs4 import BeautifulSoup as bs
 import re
 import openpyxl
 from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.styles import Alignment
+from openpyxl.utils import get_column_letter
 import time
 import datetime
 
@@ -27,7 +28,7 @@ def collect_data(cars):
     cars_dict = {}
     fuel_list = ['бензин', 'дизель', 'электро', 'гибрид', 'гбо']
     transmissions_list = ['автомат', 'акпп', 'робот', 'вариатор', 'механика']
-    drive_list = ['4wd', 'передний', 'Задний']
+    drive_list = ['4wd', 'передний', 'задний']
     fuel = ''
     transmission = ''
     drive = ''
@@ -36,19 +37,23 @@ def collect_data(cars):
         link = car.get('href')
         id = re.findall('\d{8}', str(link))
         car_name = car.find('span', {'data-ftid': 'bull_title'}).text.split(',')
+        
         price = car.find('span', {'data-ftid': 'bull_price'}).text
         price_ = re.sub(r"\s+", "", price)
+
         desc = car.find_all('span', class_ = 'css-1l9tp44 e162wx9x0')
         for i in desc:
             description.append(i.text.strip(','))
 
         try:
             engine = re.findall(r"\d{1}\.\d{1}", str(description))
+            engine = ''.join(map(str, engine))
         except:
             engine = ' '
 
         try:
             hp = re.findall(r"\d{3} [л]\.[с]", str(description))
+            hp = ''.join(map(str, hp))
         except:
             hp = ' '
 
@@ -75,53 +80,102 @@ def collect_data(cars):
 
         try:
             mileage = re.findall(r"[0-9]+ тыс\. км", str(description))
+            mileage = ''.join(map(str, mileage))
         except:
             mileage = ' '
 
-        cars_dict.setdefault(*id, [*car_name, *engine, *hp, fuel, transmission, drive, *mileage, link, price_])
+        try:
+            city = car.find('span', {'data-ftid': 'bull_location'}).text
+        except:
+            city = ' '
+
+        cars_dict.setdefault(*id, [*car_name, engine, hp, fuel, transmission, drive, mileage, link, city, price_])
+
     return create_file(cars_dict)
 
 def get_qty_cars():
     pass
 
 def create_file(cars_dict):
+    id_list = []
+    title_list = []
+    today = f"price {datetime.datetime.today().strftime('%Y-%m-%d')}"
+
     try:
         wb = openpyxl.load_workbook(f'C:\\Users\\user\\Desktop\\cars.xlsx')
         ws = wb.active
     except:
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.append(['id', 'car_name', 'year', 'engine', 'hp', 'fuel', 'transmissions', 'drive', 'mileage', 'link', 'price ' + datetime.datetime.today().strftime('%Y-%m-%d')])
-    maximum_row = ws.max_row   
-    for row, (key, values) in enumerate(cars_dict.items(), start=maximum_row+1):
-        ws[f'A{row}'] = key
-        ws[f'B{row}'] = values[0]
-        ws[f'C{row}'] = values[1]
-        ws[f'D{row}'] = values[2]
-        ws[f'E{row}'] = values[3]
-        ws[f'F{row}'] = values[4]
-        ws[f'G{row}'] = values[5]
-        ws[f'H{row}'] = values[6]
-        ws[f'I{row}'] = values[7]
-        ws[f'J{row}'] = values[8]
-        ws[f'K{row}'] = values[9]
-        
+        ws.append(['id', 'car_name', 'year', 'engine', 'hp', 'fuel', 'transmissions', 'drive', 'mileage', 'link', 'city'])
+
+    maxi_column = ws.max_column
+    maxi_row = ws.max_row
+
+    for row_cells in ws.iter_rows(min_row=1, max_row=1):
+        for row_cell in row_cells:
+            title_list.append(row_cell.value)
+    if today not in title_list:
+        ws.cell(row=1, column=maxi_column+1).value = today
+
+    for col_cells in ws.iter_cols(min_col=1, max_col=1):
+        for cell in col_cells:
+            id_list.append(cell.value)
+    
+    for row, (key, values) in enumerate(cars_dict.items(), start=maxi_row+1):
+        if key in id_list:
+            if today not in title_list:
+                idx = id_list.index(key)
+                ws.cell(row=idx+1, column=maxi_column+1).value = values[10]
+        elif key not in id_list:
+            if today in title_list:
+                indx = title_list.index(today)
+                ws[f'A{row}'] = key
+                ws[f'B{row}'] = values[0]
+                ws[f'C{row}'] = values[1]
+                ws[f'D{row}'] = values[2]
+                ws[f'E{row}'] = values[3]
+                ws[f'F{row}'] = values[4]
+                ws[f'G{row}'] = values[5]
+                ws[f'H{row}'] = values[6]
+                ws[f'I{row}'] = values[7]
+                ws[f'J{row}'] = values[8]
+                ws[f'K{row}'] = values[9]
+                ws.cell(row=row, column=indx+1).value = values[10]
+            else:
+                ws[f'A{row}'] = key
+                ws[f'B{row}'] = values[0]
+                ws[f'C{row}'] = values[1]
+                ws[f'D{row}'] = values[2]
+                ws[f'E{row}'] = values[3]
+                ws[f'F{row}'] = values[4]
+                ws[f'G{row}'] = values[5]
+                ws[f'H{row}'] = values[6]
+                ws[f'I{row}'] = values[7]
+                ws[f'J{row}'] = values[8]
+                ws[f'K{row}'] = values[9]
+                ws.cell(row=row, column=maxi_column+1).value = values[10]    
     return format_file(wb, ws)
 
 def format_file(wb, ws):
-    maxi = ws.max_row
-    tab = Table(displayName="Table1", ref=f"A1:K{maxi}")
+    tab = Table(displayName="Table1", ref=f"A1:" + get_column_letter(ws.max_column) + str(ws.max_row))
     style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False, showLastColumn=False, showRowStripes=True, showColumnStripes=False)
     tab.tableStyleInfo = style
+
     try:
         ws.add_table(tab)
+        col_dimensions = {'A': 15, 'B': 20, 'C': 12, 'D': 12, 'E': 15, 'F': 15, 'G': 15, 'H': 15, 'I': 15, 'J': 75, 'K': 20, 'L': 20}
+        for key, value in col_dimensions.items():
+            ws.column_dimensions[key].width = value
     except:
-        pass
-    col_dimensions = {'A': 15, 'B': 20, 'C': 12, 'D': 12, 'E': 15, 'F': 15, 'G': 15, 'H': 15, 'I': 15, 'J': 50, 'K': 20}
-    for i in range(maxi):
+        del ws.tables["Table1"]
+        ws.add_table(tab)
+        last_column = get_column_letter(ws.max_column)
+        ws.column_dimensions[last_column].width = 20
+
+    for i in range(ws.max_row + 1):
         ws.row_dimensions[i].height = 20
-    for key, value in col_dimensions.items():
-        ws.column_dimensions[key].width = value
+    
     return save_excel(wb)
 
 def save_excel(wb):
