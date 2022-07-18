@@ -6,32 +6,54 @@ from bs4 import BeautifulSoup as bs
 import re
 import openpyxl
 from openpyxl.worksheet.table import Table, TableStyleInfo
-from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter
 import time
 import datetime
 
+pages = []
 
 def get_request(url):
     headers = {"Accept": "*/*",
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"}
     page = requests.get(url, headers=headers)
-    print(page.status_code) 
-    return soup_data(page)
+    return parse_pages(page)
 
-def soup_data(page):
+def parse_pages(page):
+    global pages
     soup = bs(page.text, 'html.parser')
-    cars = soup.find_all('a', class_ = 'css-5l099z ewrty961')
-    return collect_data(cars)
+    pages_= soup.find_all('a',class_='css-1jjais5 ena3a8q0')
+    for page in pages_:
+        page_ = page.get('href')
+        if page_ not in pages:
+            pages.append(page_)
+    if len(pages) < 100:
+        lst = pages_[-1].get('href')
+        if pages[-1] == lst:
+            return get_request(pages[-1])
+    #     else:
+    #         return soup_data(pages)        
+    # else:
+    return soup_data(pages)
+
+def soup_data(pages):
+    cars = []
+    headers = {"Accept": "*/*",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"}
+    for url in pages:
+        page = requests.get(url, headers=headers)
+        soup = bs(page.text, 'html.parser')
+        cars.append(soup.find_all('a', class_='css-5l099z ewrty961'))
+    cars_ = sum(cars, [])
+    collect_data(cars_)
 
 def collect_data(cars):
     cars_dict = {}
     fuel_list = ['бензин', 'дизель', 'электро', 'гибрид', 'гбо']
     transmissions_list = ['автомат', 'акпп', 'робот', 'вариатор', 'механика']
     drive_list = ['4wd', 'передний', 'задний']
-    fuel = ''
-    transmission = ''
-    drive = ''
+    fuel = ' '
+    transmission = ' '
+    drive = ' '
     for car in cars:
         description = []
         link = car.get('href')
@@ -52,7 +74,7 @@ def collect_data(cars):
             engine = ' '
 
         try:
-            hp = re.findall(r"\d{3} [л]\.[с]", str(description))
+            hp = re.findall(r"\d{2,3} [л]\.[с]", str(description))
             hp = ''.join(map(str, hp))
         except:
             hp = ' '
@@ -61,22 +83,19 @@ def collect_data(cars):
             if fuel_type.lower() in fuel_list:
                 fuel = fuel_type
                 break
-            else:
-                fuel = ' '
+    
 
         for transmissions_type in description:      
             if transmissions_type.lower() in transmissions_list:
                 transmission = transmissions_type
                 break
-            else:
-                transmission = ' '
+
 
         for drive_type in description:
             if drive_type.lower() in drive_list:
                 drive = drive_type
                 break
-            else:
-                drive = ' '
+
 
         try:
             mileage = re.findall(r"[0-9]+ тыс\. км", str(description))
@@ -92,9 +111,6 @@ def collect_data(cars):
         cars_dict.setdefault(*id, [*car_name, engine, hp, fuel, transmission, drive, mileage, link, city, price_])
 
     return create_file(cars_dict)
-
-def get_qty_cars():
-    pass
 
 def create_file(cars_dict):
     id_list = []
@@ -123,6 +139,7 @@ def create_file(cars_dict):
             id_list.append(cell.value)
     
     for row, (key, values) in enumerate(cars_dict.items(), start=maxi_row+1):
+        row = ws.max_row+1
         if key in id_list:
             if today not in title_list:
                 idx = id_list.index(key)
@@ -175,7 +192,6 @@ def format_file(wb, ws):
 
     for i in range(ws.max_row + 1):
         ws.row_dimensions[i].height = 20
-    
     return save_excel(wb)
 
 def save_excel(wb):
