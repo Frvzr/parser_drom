@@ -1,1 +1,2 @@
 URL = 'https://auto.drom.ru/region72/used/suv/all/?minprice=1000000&maxprice=2000000&minyear=2012&transmission[]=2&transmission[]=3&transmission[]=4&transmission[]=5&transmission[]=-1&ph=1&unsold=1'
+URL2 = 'https://auto.drom.ru/region72/all/'
