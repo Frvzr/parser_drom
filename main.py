@@ -12,16 +12,18 @@ import datetime
 
 pages = []
 
+
 def get_request(url):
     headers = {"Accept": "*/*",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"}
+               "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"}
     page = requests.get(url, headers=headers)
     return parse_pages(page)
+
 
 def parse_pages(page):
     global pages
     soup = bs(page.text, 'html.parser')
-    pages_= soup.find_all('a',class_='css-1jjais5 ena3a8q0')
+    pages_ = soup.find_all('a', class_='css-1jjais5 ena3a8q0')
     for page in pages_:
         page_ = page.get('href')
         if page_ not in pages:
@@ -30,21 +32,20 @@ def parse_pages(page):
         lst = pages_[-1].get('href')
         if pages[-1] == lst:
             return get_request(pages[-1])
-    #     else:
-    #         return soup_data(pages)        
-    # else:
     return soup_data(pages)
+
 
 def soup_data(pages):
     cars = []
     headers = {"Accept": "*/*",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"}
+               "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"}
     for url in pages:
         page = requests.get(url, headers=headers)
         soup = bs(page.text, 'html.parser')
-        cars.append(soup.find_all('a', class_='css-5l099z ewrty961'))
+        cars.append(soup.find_all('a', class_='css-1dlmvcl ewrty961'))
     cars_ = sum(cars, [])
     collect_data(cars_)
+
 
 def collect_data(cars):
     cars_dict = {}
@@ -58,12 +59,13 @@ def collect_data(cars):
         description = []
         link = car.get('href')
         id = re.findall('\d{8}', str(link))
-        car_name = car.find('span', {'data-ftid': 'bull_title'}).text.split(',')
-        
+        car_name = car.find(
+            'span', {'data-ftid': 'bull_title'}).text.split(',')
+
         price = car.find('span', {'data-ftid': 'bull_price'}).text
         price_ = re.sub(r"\s+", "", price)
 
-        desc = car.find_all('span', class_ = 'css-1l9tp44 e162wx9x0')
+        desc = car.find_all('span', class_='css-1l9tp44 e162wx9x0')
         for i in desc:
             description.append(i.text.strip(','))
 
@@ -83,19 +85,16 @@ def collect_data(cars):
             if fuel_type.lower() in fuel_list:
                 fuel = fuel_type
                 break
-    
 
-        for transmissions_type in description:      
+        for transmissions_type in description:
             if transmissions_type.lower() in transmissions_list:
                 transmission = transmissions_type
                 break
-
 
         for drive_type in description:
             if drive_type.lower() in drive_list:
                 drive = drive_type
                 break
-
 
         try:
             mileage = re.findall(r"[0-9]+ тыс\. км", str(description))
@@ -108,14 +107,16 @@ def collect_data(cars):
         except:
             city = ' '
 
-        cars_dict.setdefault(*id, [*car_name, engine, hp, fuel, transmission, drive, mileage, link, city, price_])
+        cars_dict.setdefault(
+            *id, [*car_name, engine, hp, fuel, transmission, drive, mileage, link, city, price_])
 
     return create_file(cars_dict)
+
 
 def create_file(cars_dict):
     id_list = []
     title_list = []
-    today = f"price {datetime.datetime.today().strftime('%Y-%m-%d')}"
+    today = f"{datetime.datetime.today().strftime('%Y-%m-%d')}"
 
     try:
         wb = openpyxl.load_workbook(f'C:\\Users\\user\\Desktop\\cars.xlsx')
@@ -123,7 +124,8 @@ def create_file(cars_dict):
     except:
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.append(['id', 'car_name', 'year', 'engine', 'hp', 'fuel', 'transmissions', 'drive', 'mileage', 'link', 'city'])
+        ws.append(['id', 'car_name', 'year', 'engine', 'hp', 'fuel',
+                  'transmissions', 'drive', 'mileage', 'link', 'city'])
 
     maxi_column = ws.max_column
     maxi_row = ws.max_row
@@ -137,7 +139,7 @@ def create_file(cars_dict):
     for col_cells in ws.iter_cols(min_col=1, max_col=1):
         for cell in col_cells:
             id_list.append(cell.value)
-    
+
     for row, (key, values) in enumerate(cars_dict.items(), start=maxi_row+1):
         row = ws.max_row+1
         if key in id_list:
@@ -147,41 +149,35 @@ def create_file(cars_dict):
         elif key not in id_list:
             if today in title_list:
                 indx = title_list.index(today)
-                ws[f'A{row}'] = key
-                ws[f'B{row}'] = values[0]
-                ws[f'C{row}'] = values[1]
-                ws[f'D{row}'] = values[2]
-                ws[f'E{row}'] = values[3]
-                ws[f'F{row}'] = values[4]
-                ws[f'G{row}'] = values[5]
-                ws[f'H{row}'] = values[6]
-                ws[f'I{row}'] = values[7]
-                ws[f'J{row}'] = values[8]
-                ws[f'K{row}'] = values[9]
                 ws.cell(row=row, column=indx+1).value = values[10]
             else:
-                ws[f'A{row}'] = key
-                ws[f'B{row}'] = values[0]
-                ws[f'C{row}'] = values[1]
-                ws[f'D{row}'] = values[2]
-                ws[f'E{row}'] = values[3]
-                ws[f'F{row}'] = values[4]
-                ws[f'G{row}'] = values[5]
-                ws[f'H{row}'] = values[6]
-                ws[f'I{row}'] = values[7]
-                ws[f'J{row}'] = values[8]
-                ws[f'K{row}'] = values[9]
-                ws.cell(row=row, column=maxi_column+1).value = values[10]    
+
+                ws.cell(row=row, column=maxi_column+1).value = values[10]
+            ws[f'A{row}'] = key
+            ws[f'B{row}'] = values[0]
+            ws[f'C{row}'] = values[1]
+            ws[f'D{row}'] = values[2]
+            ws[f'E{row}'] = values[3]
+            ws[f'F{row}'] = values[4]
+            ws[f'G{row}'] = values[5]
+            ws[f'H{row}'] = values[6]
+            ws[f'I{row}'] = values[7]
+            ws[f'J{row}'] = values[8]
+            ws[f'K{row}'] = values[9]
     return format_file(wb, ws)
 
+
 def format_file(wb, ws):
-    tab = Table(displayName="Table1", ref=f"A1:" + get_column_letter(ws.max_column) + str(ws.max_row))
-    style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False, showLastColumn=False, showRowStripes=True, showColumnStripes=False)
+    tab = Table(displayName="Table1", ref=f"A1:" +
+                get_column_letter(ws.max_column) + str(ws.max_row))
+    style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False,
+                           showLastColumn=False, showRowStripes=True, showColumnStripes=False)
     tab.tableStyleInfo = style
 
     try:
         ws.add_table(tab)
-        col_dimensions = {'A': 15, 'B': 20, 'C': 12, 'D': 12, 'E': 15, 'F': 15, 'G': 15, 'H': 15, 'I': 15, 'J': 75, 'K': 20, 'L': 20}
+        col_dimensions = {'A': 15, 'B': 20, 'C': 12, 'D': 12, 'E': 15,
+                          'F': 15, 'G': 15, 'H': 15, 'I': 15, 'J': 75, 'K': 20, 'L': 20}
         for key, value in col_dimensions.items():
             ws.column_dimensions[key].width = value
     except:
@@ -194,9 +190,10 @@ def format_file(wb, ws):
         ws.row_dimensions[i].height = 20
     return save_excel(wb)
 
+
 def save_excel(wb):
     try:
-        f_name = f'C:\\Users\\user\\Desktop\\cars.xlsx'       
+        f_name = f'C:\\Users\\user\\Desktop\\cars.xlsx'
         wb.save(f_name)
         message = f'данные записаны в файл'
     except:
@@ -204,6 +201,7 @@ def save_excel(wb):
     finally:
         wb.close
         print(message)
+
 
 def main(url):
     start = time.time()
