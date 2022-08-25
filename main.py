@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from config import URL, URL2
+from config import urls
 import requests
 from bs4 import BeautifulSoup as bs
 import re
@@ -32,6 +32,7 @@ def parse_pages(page):
         lst = pages_[-1].get('href')
         if pages[-1] == lst:
             return get_request(pages[-1])
+    print(len(pages))
     return soup_data(pages)
 
 
@@ -42,9 +43,10 @@ def soup_data(pages):
     for url in pages:
         page = requests.get(url, headers=headers)
         soup = bs(page.text, 'html.parser')
-        cars.append(soup.find_all('a', class_='css-1dlmvcl ewrty961'))
+        cars.append(soup.find_all('a', class_='css-ck6dgx ewrty961'))
     cars_ = sum(cars, [])
-    collect_data(cars_)
+    print(len(cars_))
+    return collect_data(cars_)
 
 
 def collect_data(cars):
@@ -109,7 +111,7 @@ def collect_data(cars):
 
         cars_dict.setdefault(
             *id, [*car_name, engine, hp, fuel, transmission, drive, mileage, link, city, price_])
-
+    print(len(cars_dict))
     return create_file(cars_dict)
 
 
@@ -139,10 +141,11 @@ def create_file(cars_dict):
     for col_cells in ws.iter_cols(min_col=1, max_col=1):
         for cell in col_cells:
             id_list.append(cell.value)
+    print(len(id_list))
 
     for row, (key, values) in enumerate(cars_dict.items(), start=maxi_row+1):
         row = ws.max_row+1
-        if key in id_list:
+        if str(key) in id_list:
             if today not in title_list:
                 idx = id_list.index(key)
                 ws.cell(row=idx+1, column=maxi_column+1).value = values[10]
@@ -211,4 +214,5 @@ def main(url):
 
 
 if __name__ == '__main__':
-    main(URL)
+    for url in urls:
+        main(url)
