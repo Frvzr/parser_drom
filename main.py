@@ -10,29 +10,27 @@ from openpyxl.utils import get_column_letter
 import time
 import datetime
 
-pages = []
 
-
-def get_request(url):
+def get_request(url, pages):
     headers = {"Accept": "*/*",
                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"}
-    page = requests.get(url, headers=headers)
-    return parse_pages(page)
+    page = requests.get(url, headers=headers, allow_redirects=False)
+    return parse_pages(page, pages)
 
 
-def parse_pages(page):
-    global pages
+def parse_pages(page, pages):
+
     soup = bs(page.text, 'html.parser')
     pages_ = soup.find_all('a', class_='css-1jjais5 ena3a8q0')
     for page in pages_:
         page_ = page.get('href')
         if page_ not in pages:
             pages.append(page_)
-    if len(pages) < 100:
+    if 0 < len(pages) < 100:
         lst = pages_[-1].get('href')
         if pages[-1] == lst:
-            return get_request(pages[-1])
-    print(len(pages))
+            return get_request(pages[-1], pages)
+    # print(len(pages))
     return soup_data(pages)
 
 
@@ -43,9 +41,8 @@ def soup_data(pages):
     for url in pages:
         page = requests.get(url, headers=headers)
         soup = bs(page.text, 'html.parser')
-        cars.append(soup.find_all('a', class_='css-ck6dgx ewrty961'))
+        cars.append(soup.find_all('a', {'data-ftid': 'bulls-list_bull'}))
     cars_ = sum(cars, [])
-    print(len(cars_))
     return collect_data(cars_)
 
 
@@ -111,7 +108,7 @@ def collect_data(cars):
 
         cars_dict.setdefault(
             *id, [*car_name, engine, hp, fuel, transmission, drive, mileage, link, city, price_])
-    print(len(cars_dict))
+    # print(len(cars_dict))
     return create_file(cars_dict)
 
 
@@ -138,12 +135,11 @@ def create_file(cars_dict):
     if today not in title_list:
         ws.cell(row=1, column=maxi_column+1).value = today
         title_list.append(today)
-        print(title_list)
 
     for col_cells in ws.iter_cols(min_col=1, max_col=1):
         for cell in col_cells:
             id_list.append(cell.value)
-    print(len(id_list))
+    # print(len(id_list))
 
     for row, (key, values) in enumerate(cars_dict.items(), start=maxi_row+1):
         row = ws.max_row+1
@@ -204,9 +200,11 @@ def save_excel(wb):
         print(message)
 
 
-def main(url):
+def main(url, pages=None):
+    if pages is None:
+        pages = []
     start = time.time()
-    get_request(url)
+    get_request(url, pages)
     end = time.time()
     print(end - start)
 
