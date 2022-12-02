@@ -30,7 +30,6 @@ def parse_pages(page, pages):
         lst = pages_[-1].get('href')
         if pages[-1] == lst:
             return get_request(pages[-1], pages)
-    # print(len(pages))
     return soup_data(pages)
 
 
@@ -43,6 +42,8 @@ def soup_data(pages):
         soup = bs(page.text, 'html.parser')
         cars.append(soup.find_all('a', {'data-ftid': 'bulls-list_bull'}))
     cars_ = sum(cars, [])
+    del cars
+    print(len(cars_))
     return collect_data(cars_)
 
 
@@ -107,7 +108,7 @@ def collect_data(cars):
             city = ' '
 
         cars_dict.setdefault(
-            *id, [*car_name, engine, hp, fuel, transmission, drive, mileage, link, city, price_])
+            *id, [*car_name, engine, hp, fuel, transmission, drive, mileage, link, city, int(price_)])
     # print(len(cars_dict))
     return create_file(cars_dict)
 

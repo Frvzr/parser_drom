@@ -4,4 +4,4 @@ URL3 = 'https://tyumen.drom.ru/kia/optima/?maxprice=1800000&minyear=2018&transmi
 URL4 = 'https://tyumen.drom.ru/auto/all/?minprice=1000000&maxprice=1500000&minyear=2015&transmission[]=2&transmission[]=3&transmission[]=4&transmission[]=5&transmission[]=-1&unsold=1'
 URL5 = 'https://tyumen.drom.ru/volvo/xc60/?maxprice=2000000&transmission[]=2&transmission[]=3&transmission[]=4&transmission[]=5&transmission[]=-1&unsold=1'
 urls = [URL, URL2, URL3, URL4, URL5]
-#urls = [URL]
+#urls = [URL3]
